@@ -76,10 +76,23 @@ is_supported() {
 # Let the user pick one option with an arrow-key menu from REPL.TerminalMenus.
 # Arguments: the preselected option, the prompt, the options. Prints the chosen
 # option; fails if the user cancels with q or Ctrl-C. The menu is drawn on stderr,
-# so that the choice can be captured with $(...).
+# so that the choice can be captured with $(...). Without a working Julia, e.g.
+# juliaup without any installed version, it falls back to a plain prompt.
 menu() {
-    local default=$1 prompt=$2
+    local default=$1 prompt=$2 reply option
     shift 2
+    if [ -z "$(active_julia)" ]; then
+        read -r -p "$prompt ($*) [$default] " reply
+        reply=${reply:-$default}
+        # Accept a prefix of an option, e.g. y for yes
+        for option in "$@"; do
+            if [[ $option == "$reply"* ]]; then
+                printf '%s' "$option"
+                return 0
+            fi
+        done
+        return 1
+    fi
     julia --startup-file=no -e '
         using REPL.TerminalMenus
         default, prompt, options = ARGS[1], ARGS[2], ARGS[3:end]
