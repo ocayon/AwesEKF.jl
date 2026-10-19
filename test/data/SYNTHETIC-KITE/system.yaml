@@ -1,0 +1,26 @@
+# Synthetic awesIO-style system for the unit tests (generic values)
+metadata:
+  name: SYNTHETIC-KITE
+components:
+  kites:
+    - name: SYNTHETIC-KITE
+      wing:
+        structure:
+          projected_surface_area: 20.0
+          span: 8.0
+          mass: 11.0
+          center_of_mass: [0.0, 0.0, 10.0]
+      bridle:
+        structure:
+          total_nominal_line_length: 80.0
+          avg_line_diameter: 0.003
+      control_system:
+        structure:
+          length: 1.0
+          diameter: 0.5
+          mass: 20.0
+  tethers:
+    - structure:
+        diameter: 0.01
+        material:
+          type: Dyneema-SK78

@@ -1,0 +1,30 @@
+# Synthetic kite for the unit tests: generic values, not a real system.
+simulation_parameters:
+  doIEKF: true
+  epsilon: 1e-6
+  max_iterations: 200
+  log_profile: false
+  initial_wind_velocity: [0.001, 8, 0]
+  enforce_vertical_wind_to_0: true
+  steering_dependent_cs: true
+  steering_dependent_clcd: true
+  steering_dependent_cl_asym: true
+  steering_input_lag: 0.3
+  calibrate_apparent_windspeed: false
+  measurements:
+    kite_position: true
+    kite_velocity: true
+    kite_acceleration: true
+    tether_force: true
+    tether_length: true
+    tether_elevation: false
+    tether_azimuth: false
+    kite_apparent_windspeed: true
+    dynamic_depower: true
+
+tuning_parameters:
+  meas_stdv: {x: 5, v: 1, tether_length: 0.5, tether_elevation: 0.2, tether_azimuth: 0.2,
+              least_squares: 1e-5, yaw: 0.15, z_wind: 2, va: 1, aoa: 4}
+  model_stdv: {x: 2.5, v: 1, uf: 0.002, wdir: 0.00349, vw: 0.02, vwz: 0.005, CL: 0.005,
+               CD: 0.0005, CS: 0.003, tether_elevation: 0.0873, tether_azimuth: 0.0873,
+               tether_length: 0.1, yaw: 0.0873}

@@ -1,0 +1,17 @@
+# Flight data and results never go into the repository
+*.csv
+*.h5
+*.log
+validation/out/
+/results/
+/data/
+
+Manifest.toml
+.vscode/
+ekf_debug.log
+
+# Agent instructions (kept local)
+CLAUDE.md
+AGENTS.md
+.claude/
+__pycache__/
