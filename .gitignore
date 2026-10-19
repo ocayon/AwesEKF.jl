@@ -1,5 +1,6 @@
-# Flight data and results never go into the repository
+# Flight data and results stay out of the repository (except the public example slice)
 *.csv
+!examples/data/*.csv
 *.h5
 *.log
 validation/out/

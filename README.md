@@ -61,6 +61,33 @@ julia> ] activate .
 (AwesEKF) pkg> instantiate
 ```
 
+## Quick start
+
+The repository includes a 10-minute example from the public LEI V3 flight of
+8 October 2019. It contains the flight data, the as-flown system and the tuned
+filter configuration:
+
+```
+julia --project -e "using Pkg; Pkg.instantiate()"
+julia --project examples/run_v3_example.jl
+```
+
+This takes about 30 s, including compilation. It prints the estimated wind
+speed, wind direction and aerodynamic coefficients per minute, and writes the
+full results to `results/v3_example.h5`. Julia and Python agree on this example
+to within 2e-5 of each signal's standard deviation (`validation/compare_runs.jl`).
+
+| Path | Contents |
+|---|---|
+| `examples/data/` | The flight data slice, its source and licence (CC BY 4.0) |
+| `examples/LEI-V3-KITE/` | Filter configuration and system description |
+
+**Other flights.** The filter needs a processed flight CSV in the EKF-AWE input
+format (the columns listed in `examples/data/README.md`) and a kite folder with
+`ekf_config.yaml` and a `system*.yaml`. Raw logs are converted with the
+preprocessing scripts of [EKF-AWE](https://github.com/awegroup/EKF-AWE)
+(`data/data_preprocessors/`); its `data/` folder holds the kite configurations.
+
 ## Usage
 
 The configuration follows the EKF-AWE/AWETrim convention: a kite folder holding

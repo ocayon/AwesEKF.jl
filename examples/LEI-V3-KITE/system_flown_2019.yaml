@@ -1,0 +1,39 @@
+# LEI V3 kite as flown on 8 October 2019 (KCU 22.0 kg incl. a 2.8 kg onboard
+# wind turbine, 10 mm tether). Excerpt of EKF-AWE data/LEI-V3-KITE/
+# system_flown_2019.yaml (commit f1b95a0), reduced to the awesIO fields the
+# filter reads. Kite geometry: Poland & Schmehl, TUDELFT_V3_KITE (2024).
+metadata:
+  name: LEI-V3-KITE
+  awesIO_version: 0.1.0
+
+components:
+  kites:
+  - name: LEI-V3 Kite
+    type: soft_kite_kcu
+    wing:
+      name: LEI-V3
+      structure:
+        projected_surface_area: 19.75 # m²
+        span: 8.282                    # m
+        mass: 10.9926                  # kg
+        center_of_mass: [-0.0413, 0.0, 10.3]   # m; z = KCU-to-wing distance
+    bridle:
+      name: LEI-V3 Bridle
+      structure:
+        total_nominal_line_length: 79.522    # m
+        avg_line_diameter: 0.00285           # m
+    control_system:
+      name: LEI-V3 KCU
+      structure:
+        length: 1.0      # m
+        diameter: 0.5642 # m, area-equivalent diameter of the 0.25 m² frontal area
+        mass: 22.0       # kg, KCU + cover + onboard wind turbine
+      turbine:           # onboard ram-air turbine: adds crossflow drag only
+        diameter: 0.50            # m
+        thrust_coefficient: 0.85  # -
+  tethers:
+  - name: LEI-V3 Tether
+    structure:
+      diameter: 0.010      # m
+      material:
+        type: Dyneema-SK78
