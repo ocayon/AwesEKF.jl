@@ -4,6 +4,7 @@
 
 set -eu
 
+start_dir=$(pwd -P)
 cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.."
 
 # Free disk space in the Julia depot that bin/install -i requires, in GB
@@ -27,8 +28,9 @@ To update all packages to their latest versions use bin/update_default_manifests
 
   -y         same as without parameters: never prompt (for automation)
   -i         interactive installation for end users: install or select a Julia
-             version, add the alias jl for bin/run_julia, optionally precompile
-             the test and docs environments and run the tests
+             version, add the alias jl for bin/run_julia, install Revise in the
+             global environment if it is missing, optionally precompile the test
+             and docs environments and run the tests
   -h, --help show this message
 USAGE
 }
@@ -71,23 +73,40 @@ is_supported() {
     return 1
 }
 
-# Ask a yes/no question; the first argument is the default answer (y or n)
-ask() {
-    local default=$1 prompt=$2 reply
-    if [ "$default" = y ]; then
-        read -r -p "$prompt [Y/n] " reply
-        [[ -z $reply || $reply == [yY]* ]]
-    else
-        read -r -p "$prompt [y/N] " reply
-        [[ $reply == [yY]* ]]
-    fi
+# Let the user pick one option with an arrow-key menu from REPL.TerminalMenus.
+# Arguments: the preselected option, the prompt, the options. Prints the chosen
+# option; fails if the user cancels with q or Ctrl-C. The menu is drawn on stderr,
+# so that the choice can be captured with $(...).
+menu() {
+    local default=$1 prompt=$2
+    shift 2
+    julia --startup-file=no -e '
+        using REPL.TerminalMenus
+        default, prompt, options = ARGS[1], ARGS[2], ARGS[3:end]
+        term = TerminalMenus.default_terminal(; out=stderr)
+        cursor = something(findfirst(==(default), options), 1)
+        choice = request(term, prompt, RadioMenu(options; pagesize=length(options)); cursor)
+        choice == -1 && exit(1)
+        print(options[choice])' "$default" "$prompt" "$@"
 }
 
+# Ask a yes/no question; the first argument is the default answer (y or n)
+ask() {
+    local default=yes
+    [ "$1" = y ] || default=no
+    [ "$(menu "$default" "$2" yes no)" = yes ]
+}
+
+install_revise=false
 precompile_tests=false
 precompile_docs=false
 run_tests=false
 
 if $interactive; then
+    if [ ! -t 0 ] || [ ! -t 2 ]; then
+        echo "bin/install: -i needs an interactive terminal." >&2
+        exit 1
+    fi
     if ! command -v juliaup &> /dev/null; then
         echo "bin/install: juliaup is not installed. Please install it first:" >&2
         case "$(uname -s)" in
@@ -136,10 +155,9 @@ if $interactive; then
         echo "Active Julia version: ${active:-none}. Supported and installed: ${installed[*]}"
         default=$active
         is_supported "$active" || default=${installed[${#installed[@]}-1]}
-        read -r -p "Julia version to use in this repository [$default]: " choice
-        choice=${choice:-$default}
-        if [[ " ${installed[*]} " != *" $choice "* ]]; then
-            echo "bin/install: Julia $choice is not one of ${installed[*]}." >&2
+        if ! choice=$(menu "$default" "Julia version to use in this repository:" \
+                "${installed[@]}"); then
+            echo "bin/install: no Julia version selected, nothing installed." >&2
             exit 1
         fi
         if [ "$choice" != "$active" ]; then
@@ -159,6 +177,13 @@ if $interactive; then
             echo "alias jl='./bin/run_julia'" >> "$rcfile"
             echo "Added the alias jl; it is active in new terminals."
         fi
+    fi
+
+    # The global environment is the default one, e.g. ~/.julia/environments/v1.12
+    if ! julia --startup-file=no -e 'using Pkg; Pkg.activate(; io=devnull)
+            exit(haskey(Pkg.project().dependencies, "Revise") ? 0 : 1)' &> /dev/null &&
+            ask y "Install Revise in the global environment of Julia $(active_julia)?"; then
+        install_revise=true
     fi
 
     if [ -f test/Project.toml ] && ask n "Precompile the test environment?"; then
@@ -214,6 +239,10 @@ install_env .
 if [ -f examples/Project.toml ]; then
     install_env examples
 fi
+if $install_revise; then
+    echo "Adding Revise to the global environment ..."
+    julia --startup-file=no -e 'using Pkg; Pkg.activate(); Pkg.add("Revise")'
+fi
 if $precompile_tests; then
     install_env test
 fi
@@ -225,3 +254,17 @@ if $run_tests; then
 fi
 
 echo "Installation for Julia $version finished."
+
+# Reached only without errors, because of set -e
+if $interactive; then
+    echo
+    printf "\033[1;32mInstallation complete!\033[0m\n"
+    echo
+    echo "You can now launch Julia by typing"
+    if [ "$start_dir" = "$PWD/bin" ]; then
+        echo "cd .."
+    elif [ "$start_dir" != "$PWD" ]; then
+        echo "cd $PWD"
+    fi
+    echo "bin/run_julia"
+fi
