@@ -8,6 +8,8 @@ validation/out/
 /data/
 
 Manifest.toml
+Manifest-v*.toml
+.JETLSConfig.toml
 .vscode/
 ekf_debug.log
 
@@ -16,3 +18,5 @@ CLAUDE.md
 AGENTS.md
 .claude/
 __pycache__/
+bin/count_loc
+*.bak

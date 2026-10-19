@@ -1,0 +1,22 @@
+#!/bin/bash -eu
+# SPDX-FileCopyrightText: 2026 Uwe Fechner
+# SPDX-License-Identifier: MIT
+
+if [[ $(basename $(pwd)) == "bin" ]]; then
+    cd ..
+fi
+
+export JULIA_PKG_SERVER_REGISTRY_PREFERENCE=eager
+
+# Without arguments an interactive session starts with AwesEKF loaded,
+# and Revise if it is installed (e.g. in the global environment).
+# With arguments they are passed to julia unchanged.
+julia_init='Base.find_package("Revise") === nothing || using Revise; using AwesEKF'
+
+if [[ $# -gt 0 ]]; then
+    JULIA_ARGS=("$@")
+else
+    JULIA_ARGS=(-i -e "$julia_init")
+fi
+
+LANG=en_US julia --project -t auto "${JULIA_ARGS[@]}"

@@ -1,0 +1,26 @@
+#!/bin/bash -eu
+# SPDX-FileCopyrightText: 2026 Uwe Fechner
+# SPDX-License-Identifier: MIT
+
+# Update Manifest-v<version>.toml.default for each supported Julia version.
+# The .default manifest is only replaced if the update, precompilation and tests succeed.
+
+if [[ $(basename $(pwd)) == "bin" ]]; then
+    cd ..
+fi
+
+export JULIA_PKG_SERVER_REGISTRY_PREFERENCE=eager
+
+for julia_major in 1.12 1.13; do
+    echo "Updating the manifest for Julia ${julia_major}..."
+    # Start from a clean state so that Pkg.update() generates a fresh manifest
+    rm -f Manifest.toml "Manifest-v${julia_major}.toml"
+    julia "+${julia_major}" --project -e 'using Pkg; Pkg.update(); Pkg.precompile(); Pkg.test()'
+    # Julia writes a plain Manifest.toml if no version-specific one exists
+    if [ -f "Manifest.toml" ]; then
+        mv Manifest.toml "Manifest-v${julia_major}.toml"
+    fi
+    cp "Manifest-v${julia_major}.toml" "Manifest-v${julia_major}.toml.default"
+    rm -rf ~/.julia/compiled/v${julia_major}/AwesEKF/
+    echo "Updated Manifest-v${julia_major}.toml.default !"
+done

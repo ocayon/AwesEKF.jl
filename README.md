@@ -47,29 +47,51 @@ Python filter after that commit are not in this port.
 
 ## Installation
 
-Requires Julia ≥ 1.10. The package is not in the General registry; install it
+Requires Julia ≥ 1.12. The package is not in the General registry; install it
 from GitHub:
 
 ```julia
 julia> ] add https://github.com/ocayon/AwesEKF.jl
 ```
 
-or, for development, clone the repository and instantiate it:
+or, for development and to run the examples, clone the repository and run
+`bin/install`:
 
-```julia
-julia> ] activate .
-(AwesEKF) pkg> instantiate
+```bash
+git clone https://github.com/ocayon/AwesEKF.jl
+cd AwesEKF.jl
+bin/install
+```
+
+`bin/install` installs the tested package versions of the default manifest for
+your Julia version (1.12 or 1.13) and precompiles them. Run it again after every
+`git pull` or branch switch. New to Julia? `bin/install -i` asks a few questions
+and can also install a supported Julia version (needs
+[juliaup](https://github.com/JuliaLang/juliaup)) and add the alias `jl` for
+`bin/run_julia`.
+
+For development it is recommended to install
+[Revise](https://github.com/timholy/Revise.jl) in your global environment, so
+that code changes take effect without restarting Julia. `bin/run_julia` loads it
+automatically if it is available:
+
+```bash
+julia -e 'using Pkg; Pkg.add("Revise")'
 ```
 
 ## Quick start
 
 The repository includes a 10-minute example from the public LEI V3 flight of
 8 October 2019. It contains the flight data, the as-flown system and the tuned
-filter configuration:
+filter configuration. After `bin/install`, start the Julia REPL with
+`bin/run_julia` and include the example:
 
+```bash
+bin/run_julia
 ```
-julia --project -e "using Pkg; Pkg.instantiate()"
-julia --project examples/run_v3_example.jl
+
+```julia
+julia> include("examples/run_v3_example.jl")
 ```
 
 This takes about 30 s, including compilation. It prints the estimated wind
