@@ -1,0 +1,27 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite the paper below."
+title: "AwesEKF.jl: extended Kalman filter for wind and state estimation of airborne wind energy systems"
+type: software
+authors:
+  - family-names: Cayon
+    given-names: Oriol
+repository-code: https://github.com/ocayon/AwesEKF.jl
+license: MIT
+version: "0.1.0"
+preferred-citation:
+  type: article
+  authors:
+    - family-names: Cayon
+      given-names: Oriol
+    - family-names: Watson
+      given-names: Simon
+    - family-names: Schmehl
+      given-names: Roland
+  title: "Kite as a sensor: wind and state estimation in tethered flying systems"
+  journal: "Wind Energy Science"
+  volume: 10
+  start: 2161
+  end: 2188
+  year: 2025
+  doi: 10.5194/wes-10-2161-2025
+  url: https://doi.org/10.5194/wes-10-2161-2025

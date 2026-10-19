@@ -232,9 +232,26 @@ turn-rate law), the data preprocessors, and the `model_yaw` option (flagged
 
 ## Citation
 
-If you use this code, please cite the paper above and the original
-implementation: O. Cayon, *Extended Kalman Filter for Airborne Wind Energy Systems
-(AWES)*, Zenodo, https://doi.org/10.5281/zenodo.15269632.
+If you use this code, please cite the paper:
+
+> Cayon, O., Watson, S., and Schmehl, R.: Kite as a sensor: wind and state
+> estimation in tethered flying systems, Wind Energ. Sci., 10, 2161–2188,
+> https://doi.org/10.5194/wes-10-2161-2025, 2025.
+
+```bibtex
+@article{cayon2025kite,
+  author  = {Cayon, Oriol and Watson, Simon and Schmehl, Roland},
+  title   = {Kite as a sensor: wind and state estimation in tethered flying systems},
+  journal = {Wind Energy Science},
+  volume  = {10},
+  pages   = {2161--2188},
+  year    = {2025},
+  doi     = {10.5194/wes-10-2161-2025}
+}
+```
+
+The original Python implementation is archived at
+https://doi.org/10.5281/zenodo.15269632 (EKF-AWE).
 
 ## Acknowledgements
 
