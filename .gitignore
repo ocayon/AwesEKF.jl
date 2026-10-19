@@ -8,6 +8,7 @@ validation/out/
 /data/
 
 Manifest.toml
+Manifest-v*.toml
 .vscode/
 ekf_debug.log
 
