@@ -8,9 +8,10 @@ fi
 
 export JULIA_PKG_SERVER_REGISTRY_PREFERENCE=eager
 
-# Without arguments an interactive session starts with Revise and AwesEKF loaded.
+# Without arguments an interactive session starts with AwesEKF loaded,
+# and Revise if it is installed (e.g. in the global environment).
 # With arguments they are passed to julia unchanged.
-julia_init='using Revise; using AwesEKF'
+julia_init='Base.find_package("Revise") === nothing || using Revise; using AwesEKF'
 
 if [[ $# -gt 0 ]]; then
     JULIA_ARGS=("$@")
