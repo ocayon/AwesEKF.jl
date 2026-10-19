@@ -1,0 +1,221 @@
+#!/bin/bash
+# SPDX-FileCopyrightText: 2026 Uwe Fechner
+# SPDX-License-Identifier: MIT
+
+set -eu
+
+cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.."
+
+# Free disk space in the Julia depot that bin/install -i requires, in GB
+MIN_FREE_GB=5
+
+usage() {
+    cat <<'USAGE'
+Usage: bin/install [-y] [-i] [-h]
+
+Make this checkout ready to use with the tested package versions:
+  - check that the active Julia version is supported, i.e. that a
+    Manifest-v<version>.toml.default exists for it
+  - back up manifests that are no longer needed (*.bak)
+  - copy Manifest-v<version>.toml.default to Manifest-v<version>.toml
+  - resolve, instantiate and precompile the package and the examples
+
+Without parameters nothing is asked and nothing outside the repository is changed,
+except that packages and precompiled files are added to the Julia depot.
+To update all packages to their latest versions use bin/update_default_manifests.
+
+  -y         same as without parameters: never prompt (for automation)
+  -i         interactive installation for end users: install or select a Julia
+             version, add the alias jl for bin/run_julia, optionally precompile
+             the test and docs environments and run the tests
+  -h, --help show this message
+USAGE
+}
+
+interactive=false
+while [ $# -gt 0 ]; do
+    case "$1" in
+        -y) ;;
+        -i) interactive=true ;;
+        -h|--help) usage; exit 0 ;;
+        *) echo "bin/install: unknown option $1" >&2; usage >&2; exit 1 ;;
+    esac
+    shift
+done
+
+export JULIA_PKG_SERVER_REGISTRY_PREFERENCE=eager
+
+# The supported Julia versions are the ones with a tracked default manifest
+supported=()
+for default in Manifest-v*.toml.default; do
+    [ -f "$default" ] || continue
+    version=${default#Manifest-v}
+    supported+=("${version%.toml.default}")
+done
+if [ ${#supported[@]} -eq 0 ]; then
+    echo "bin/install: no Manifest-v<version>.toml.default in this repository." >&2
+    exit 1
+fi
+
+# Print major.minor of the Julia that "julia" starts here, or nothing if there is none
+active_julia() {
+    julia --startup-file=no -e 'print(VERSION.major, ".", VERSION.minor)' 2>/dev/null || true
+}
+
+is_supported() {
+    local v
+    for v in "${supported[@]}"; do
+        [ "$v" = "$1" ] && return 0
+    done
+    return 1
+}
+
+# Ask a yes/no question; the first argument is the default answer (y or n)
+ask() {
+    local default=$1 prompt=$2 reply
+    if [ "$default" = y ]; then
+        read -r -p "$prompt [Y/n] " reply
+        [[ -z $reply || $reply == [yY]* ]]
+    else
+        read -r -p "$prompt [y/N] " reply
+        [[ $reply == [yY]* ]]
+    fi
+}
+
+precompile_tests=false
+precompile_docs=false
+run_tests=false
+
+if $interactive; then
+    if ! command -v juliaup &> /dev/null; then
+        echo "bin/install: juliaup is not installed. Please install it first:" >&2
+        case "$(uname -s)" in
+            Linux|Darwin)
+                echo "  curl -fsSL https://install.julialang.org | sh" >&2 ;;
+            MINGW*|MSYS*|CYGWIN*)
+                echo "  winget install --name Julia --id 9NJNWW8PVKMN -e -s msstore" >&2 ;;
+            *)
+                echo "  see https://github.com/JuliaLang/juliaup" >&2 ;;
+        esac
+        exit 1
+    fi
+
+    depot=${JULIA_DEPOT_PATH:-$HOME/.julia}
+    depot=${depot%%:*}
+    [ -d "$depot" ] || depot=$HOME
+    free_gb=$(( $(df -Pk "$depot" | awk 'NR==2 {print $4}') / 1024 / 1024 ))
+    if [ "$free_gb" -lt "$MIN_FREE_GB" ]; then
+        echo "bin/install: only ${free_gb} GB free in $depot, at least ${MIN_FREE_GB} GB needed." >&2
+        exit 1
+    fi
+
+    # Supported Julia versions that juliaup has installed
+    installed=()
+    for v in "${supported[@]}"; do
+        if [ "$(julia "+$v" --startup-file=no -e 'print(VERSION.major, ".", VERSION.minor)' \
+                2>/dev/null)" = "$v" ]; then
+            installed+=("$v")
+        fi
+    done
+
+    if [ ${#installed[@]} -eq 0 ]; then
+        newest=${supported[${#supported[@]}-1]}
+        echo "None of the supported Julia versions (${supported[*]}) is installed."
+        if ask y "Install Julia $newest with juliaup?"; then
+            juliaup add "$newest"
+            installed=("$newest")
+        else
+            echo "bin/install: no supported Julia version, nothing installed." >&2
+            exit 1
+        fi
+    fi
+
+    active=$(active_julia)
+    if ! is_supported "$active" || [ ${#installed[@]} -gt 1 ]; then
+        echo "Active Julia version: ${active:-none}. Supported and installed: ${installed[*]}"
+        default=$active
+        is_supported "$active" || default=${installed[${#installed[@]}-1]}
+        read -r -p "Julia version to use in this repository [$default]: " choice
+        choice=${choice:-$default}
+        if [[ " ${installed[*]} " != *" $choice "* ]]; then
+            echo "bin/install: Julia $choice is not one of ${installed[*]}." >&2
+            exit 1
+        fi
+        if [ "$choice" != "$active" ]; then
+            # Directory override: applies to this repository only
+            juliaup override set "$choice"
+        fi
+    fi
+
+    case "$(basename "${SHELL:-bash}")" in
+        zsh)  rcfile=$HOME/.zshrc ;;
+        fish) rcfile=$HOME/.config/fish/config.fish ;;
+        *)    rcfile=$HOME/.bashrc ;;
+    esac
+    if ! grep -qs "alias jl=" "$rcfile"; then
+        if ask y "Add the alias jl for bin/run_julia to $rcfile?"; then
+            mkdir -p "$(dirname "$rcfile")"
+            echo "alias jl='./bin/run_julia'" >> "$rcfile"
+            echo "Added the alias jl; it is active in new terminals."
+        fi
+    fi
+
+    if [ -f test/Project.toml ] && ask n "Precompile the test environment?"; then
+        precompile_tests=true
+    fi
+    if [ -f docs/Project.toml ] && ask n "Precompile the docs environment?"; then
+        precompile_docs=true
+    fi
+    if ask n "Run the tests after the installation?"; then
+        run_tests=true
+    fi
+fi
+
+version=$(active_julia)
+if [ -z "$version" ]; then
+    echo "bin/install: Julia is not installed. Run bin/install -i to install it." >&2
+    exit 1
+fi
+if ! is_supported "$version"; then
+    echo "bin/install: Julia $version is not supported, use one of: ${supported[*]}" >&2
+    echo "  Run bin/install -i to install or select a supported version." >&2
+    exit 1
+fi
+echo "Installing for Julia $version..."
+
+manifest="Manifest-v$version.toml"
+# A plain Manifest.toml is not used once the versioned manifest exists
+if [ -f Manifest.toml ]; then
+    mv Manifest.toml Manifest.toml.bak
+    echo "Moved Manifest.toml to Manifest.toml.bak"
+fi
+if [ -f "$manifest" ] && ! cmp -s "$manifest" "$manifest.default"; then
+    cp "$manifest" "$manifest.bak"
+    echo "Backed up $manifest to $manifest.bak"
+fi
+cp "$manifest.default" "$manifest"
+echo "Copied $manifest.default to $manifest"
+
+# Resolve, instantiate and precompile the environment in the given folder
+install_env() {
+    echo "Instantiating and precompiling the environment in $1 ..."
+    julia --startup-file=no --project="$1" -e \
+        'using Pkg; Pkg.resolve(); Pkg.instantiate(); Pkg.precompile(; strict=true)'
+}
+
+install_env .
+# The examples use the main environment unless they have their own
+if [ -f examples/Project.toml ]; then
+    install_env examples
+fi
+if $precompile_tests; then
+    install_env test
+fi
+if $precompile_docs; then
+    install_env docs
+fi
+if $run_tests; then
+    julia --startup-file=no --project -e 'using Pkg; Pkg.test()'
+fi
+
+echo "Installation for Julia $version finished."

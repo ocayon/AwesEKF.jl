@@ -18,3 +18,4 @@ AGENTS.md
 .claude/
 __pycache__/
 bin/count_loc
+*.bak
