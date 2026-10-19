@@ -47,7 +47,7 @@ Python filter after that commit are not in this port.
 
 ## Installation
 
-Requires Julia ≥ 1.10. The package is not in the General registry; install it
+Requires Julia ≥ 1.12. The package is not in the General registry; install it
 from GitHub:
 
 ```julia
