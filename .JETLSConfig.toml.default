@@ -1,0 +1,5 @@
+# SPDX-FileCopyrightText: 2026 Uwe Fechner
+# SPDX-License-Identifier: MIT
+
+[inlay_hint.types]
+enabled = false                     # boolean, default: true

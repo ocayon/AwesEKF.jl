@@ -9,6 +9,7 @@ validation/out/
 
 Manifest.toml
 Manifest-v*.toml
+.JETLSConfig.toml
 .vscode/
 ekf_debug.log
 
